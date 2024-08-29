@@ -1,0 +1,71 @@
+import com.eviware.soapui.support.XmlHolder
+import com.eviware.soapui.impl.wsdl.testcase.WsdlTestRunContext
+log.info "This is my first programme"
+log.info context.expand('${#TestCase#name}')
+log.info context.expand('${#TestCase#age}')
+//Accessing properties from diff test case
+log.info testRunner.testCase.testSuite.testCases["GetEmployee"].getPropertyValue("id")
+log.info testRunner.testCase.testSuite.testCases["AddEmployee"].getPropertyValue("age")
+testRunner.testCase.testSuite.testCases["AddEmployee"].setPropertyValue("roll", "090107114004")
+//Accessing property from same test case
+log.info testRunner.testCase.getPropertyValue("dept")
+//Accessing the custom property from the test step of other test case
+log.info testRunner.testCase.testSuite.testCases["GetEmployee"].testSteps["get"].getPropertyValue("Request")
+//Access property from project level
+log.info testRunner.testCase.testSuite.project.getPropertyValue("gender")
+def gender = testRunner.testCase.testSuite.project
+gender.getPropertyValue("gender")
+//To get within testcase
+def request = testRunner.testCase.testSteps["GrowAdd"].getPropertyValue("Request")
+log.info("Request XML: " + request)
+//Hit addemployee
+def addRequest = testRunner.testCase.testSuite.testCases["AddEmployee"].testSteps["add"].getPropertyValue("Request")
+def addName = testRunner.testCase.testSuite.testCases["AddEmployee"].getPropertyValue("name")
+def addID = testRunner.testCase.testSuite.testCases["AddEmployee"].getPropertyValue("id")
+def addAge = testRunner.testCase.testSuite.testCases["AddEmployee"].getPropertyValue("age")
+def xmlAdd = new XmlHolder(addRequest)
+def dName = context.expand('${#TestCase#name}')
+xmlAdd.setNodeValue("//typ:addEmployee/typ:name", addName)
+xmlAdd.setNodeValue("//typ:addEmployee/typ:id", addID)
+xmlAdd.setNodeValue("//typ:addEmployee/typ:Department", "Architechture")
+xmlAdd.setNodeValue("//typ:addEmployee/typ:age", addAge)
+def newAddXml = xmlAdd.getXml();
+testRunner.testCase.testSuite.testCases["AddEmployee"].testSteps["add"].setPropertyValue("Request", newAddXml)
+//log.info newAddXml
+//call the service -- Hit 
+//context of AddEmployee testCase should be passed as Add testStep which we are trying to run belongs to that testCase
+//syntax -- AddtestStep.run(testRunner, context)
+def addTestStep = testRunner.testCase.testSuite.testCases["AddEmployee"].testSteps["add"]
+def contextAddEmployee = new  WsdlTestRunContext(addTestStep);
+addTestStep.run(testRunner, contextAddEmployee)
+//------------------------------//------------------------------//------------------------------//------------------------------//
+//Hit get response and check whether the add empolyee function written above is happened correctly
+
+def getRequest = testRunner.testCase.testSuite.testCases["GetEmployee"].testSteps["get"].getPropertyValue("Request")
+def xmlGet = new XmlHolder(getRequest)
+xmlGet.setNodeValue("//typ:getEmployeeDetails/typ:employeeName",addName)
+def newGetXml = xmlGet.getXml();
+testRunner.testCase.testSuite.testCases["GetEmployee"].testSteps["get"].setPropertyValue("Request", newGetXml)
+def getTestStep = testRunner.testCase.testSuite.testCases["GetEmployee"].testSteps["get"]
+def contextGetEmployee = new  WsdlTestRunContext(getTestStep);
+getTestStep.run(testRunner, contextGetEmployee)
+//------------------------------//------------------------------//------------------------------//------------------------------//
+//Validating the response from GetEmployee and the name passed thorugh AddEmployee steps
+def getResponse = testRunner.testCase.testSuite.testCases["GetEmployee"].testSteps["get"].getPropertyValue("Response")
+def xmlGetResponse = new XmlHolder(getResponse)
+def getResonseName = xmlGetResponse.getNodeValue("//ns:name")
+log.info getResonseName
+log.info addName
+assert getResonseName==addName
+//------------------------------//------------------------------//------------------------------//------------------------------//
+def deleteRequest = testRunner.testCase.testSuite.testCases["DeleteEmployee"].testSteps["delete"].getPropertyValue("Request")
+def xmlDelete = new XmlHolder(deleteRequest)
+xmlDelete.setNodeValue("//typ:deleteEmployee/typ:employeeName", addName)
+def newDelXml = xmlDelete.getXml();
+log.info newDelXml
+testRunner.testCase.testSuite.testCases["DeleteEmployee"].testSteps["delete"].setPropertyValue("Request", newDelXml)
+def delTestStep = testRunner.testCase.testSuite.testCases["DeleteEmployee"].testSteps["delete"]
+def contextDeleteEmployee = new  WsdlTestRunContext(delTestStep);
+delTestStep.run(testRunner, contextDeleteEmployee)
+//------------------------------//-------------------End of Soap UI------------------//------------------------------//
+
